@@ -1,0 +1,81 @@
+name: Migrate content from live site
+
+# When this workflow runs:
+#   • Manually, from the "Actions" tab on GitHub (click "Run workflow")
+#   • Optionally, on a schedule — uncomment the `schedule:` block below
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'Source URL to scrape'
+        required: false
+        default: 'https://chikoshay.com'
+  # schedule:
+  #   - cron: '0 3 * * *'   # every day at 03:00 UTC — uncomment to enable
+
+permissions:
+  contents: write   # needed so the workflow can commit the scraped data back
+
+concurrency:
+  group: migrate
+  cancel-in-progress: true
+
+jobs:
+  migrate:
+    name: Scrape + commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'false'
+
+      - name: Install Chromium dependencies (Ubuntu)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libxkbcommon0 \
+            libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 \
+            libcairo2 libasound2t64 libxss1 libgtk-3-0 || \
+          sudo apt-get install -y libasound2
+
+      - name: Run migration
+        env:
+          MIGRATE_SOURCE: ${{ github.event.inputs.source || 'https://chikoshay.com' }}
+        run: npm run migrate
+
+      - name: Show migration summary
+        if: always()
+        run: |
+          echo "---- migration log ----"
+          [ -f data/_migration-log.json ] && cat data/_migration-log.json || echo "(no log produced)"
+          echo "---- data dir ----"
+          ls -la data/ || true
+          echo "---- assets dir ----"
+          ls -la assets/projects/ | head -40 || true
+
+      - name: Commit + push changes
+        env:
+          SRC: ${{ github.event.inputs.source || 'https://chikoshay.com' }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/ assets/
+          if git diff --staged --quiet; then
+            echo "No content changes — nothing to commit."
+            exit 0
+          fi
+          git commit -m "chore(migrate): sync content from $SRC (run $RUN_ID)"
+          git push
