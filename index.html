@@ -1063,33 +1063,42 @@ const io = new IntersectionObserver((entries) => {
 }, { threshold: 0.15 });
 document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 
-// ----- Work filter -----
-const filterButtons = document.querySelectorAll('.work-filters button');
-const tiles = document.querySelectorAll('.tile');
-filterButtons.forEach(btn => {
-  btn.addEventListener('click', () => {
-    filterButtons.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const f = btn.dataset.filter;
-    tiles.forEach(t => {
-      const show = f === 'all' || t.dataset.cat === f;
-      t.style.display = show ? '' : 'none';
-    });
+// ----- Work filter (event delegation so injected tiles also work) -----
+const workFilters = document.querySelector('.work-filters');
+workFilters.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  workFilters.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const f = btn.dataset.filter;
+  document.querySelectorAll('#workGrid .tile').forEach(t => {
+    const show = f === 'all' || t.dataset.cat === f;
+    t.style.display = show ? '' : 'none';
   });
 });
 
-// ----- Tile 3D tilt -----
-tiles.forEach(tile => {
-  tile.addEventListener('pointermove', (e) => {
-    const rect = tile.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    tile.style.transform = `rotateY(${x * 14}deg) rotateX(${-y * 14}deg) translateZ(8px)`;
-  });
-  tile.addEventListener('pointerleave', () => {
-    tile.style.transform = '';
-  });
+// ----- Tile 3D tilt + click (delegated) -----
+const workGridEl = document.getElementById('workGrid');
+workGridEl.addEventListener('pointermove', (e) => {
+  const tile = e.target.closest('.tile');
+  if (!tile) return;
+  const rect = tile.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / rect.width - 0.5;
+  const y = (e.clientY - rect.top) / rect.height - 0.5;
+  tile.style.transform = `rotateY(${x * 14}deg) rotateX(${-y * 14}deg) translateZ(8px)`;
 });
+workGridEl.addEventListener('pointerleave', (e) => {
+  const tile = e.target.closest('.tile');
+  if (tile) tile.style.transform = '';
+}, true);
+workGridEl.addEventListener('click', (e) => {
+  if (e.target.closest('.work-filters')) return;
+  const tile = e.target.closest('.tile');
+  if (tile) openModal(tile);
+});
+
+// Reference used by the modal + migration loader
+let tiles = document.querySelectorAll('.tile');
 
 // ===== PROJECT MODAL + YOUTUBE + AI REVIEW =====
 const modal       = document.getElementById('projectModal');
@@ -1159,14 +1168,6 @@ function resetAI() {
 modalClose.addEventListener('click', closeModal);
 modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
-
-tiles.forEach(tile => {
-  tile.addEventListener('click', (e) => {
-    // avoid opening while dragging-filter interaction
-    if (e.target.closest('.work-filters')) return;
-    openModal(tile);
-  });
-});
 
 // ---- AI Review ----
 // If you have a real LLM endpoint, set window.AI_REVIEW_ENDPOINT to a URL
@@ -1275,6 +1276,169 @@ aiBtn.addEventListener('click', async () => {
   aiBtnLabel.textContent = 'Regenerate';
   aiBtn.disabled = false;
 });
+
+// ============================================================================
+// MIGRATED CONTENT LOADER
+// Pulls projects/news/hero/manifesto from data/*.json (produced by `npm run
+// migrate`). If the files don't exist or are empty, the hardcoded placeholders
+// above remain in place — so the site works whether or not migration has run.
+// ============================================================================
+function escapeHtml(s='') { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function categoryToFilter(cat='') {
+  const c = cat.toLowerCase();
+  if (c.includes('tv')) return 'tv';
+  if (c.includes('outdoor')) return 'outdoor';
+  if (c.includes('print')) return 'print';
+  if (c.includes('radio')) return 'radio';
+  if (c.includes('digital') || c.includes('best use') || c.includes('innovation') ||
+      c.includes('campaign') || c.includes('experience')) return 'digital';
+  return 'all';
+}
+
+function renderProjects(projects) {
+  const grid = document.getElementById('workGrid');
+  if (!grid || !projects || !projects.length) return;
+  grid.innerHTML = '';
+  projects.forEach((p, i) => {
+    const tileN = (i % 6) + 1; // reuse existing gradient fallbacks t1..t6
+    const image = p.image ||
+                  (p.videoId ? `https://img.youtube.com/vi/${p.videoId}/hqdefault.jpg` : '');
+    const bgStyle = image
+      ? `background-image: url('${image}'); background-size: cover; background-position: center;`
+      : '';
+    const tile = document.createElement('div');
+    tile.className = `tile t${tileN} reveal`;
+    tile.dataset.cat   = categoryToFilter(p.category);
+    tile.dataset.title = p.title || '';
+    tile.dataset.label = p.category || '';
+    tile.dataset.desc  = p.description || '';
+    tile.dataset.video = p.videoId || '';
+    tile.innerHTML = `
+      <div class="bg" style="${bgStyle}"></div>
+      ${p.videoId ? '<div class="play-badge">▶</div>' : ''}
+      <div class="label">
+        <div class="cat">${escapeHtml(p.category || '')}</div>
+        <h3>${escapeHtml(p.title || '')}</h3>
+      </div>`;
+    grid.appendChild(tile);
+  });
+}
+
+function renderNews(news) {
+  const list = document.querySelector('.news-list');
+  if (!list || !news || !news.length) return;
+  list.innerHTML = '';
+  news.forEach(n => {
+    const item = document.createElement(n.link ? 'a' : 'div');
+    item.className = 'news-item reveal';
+    if (n.link) { item.href = n.link; item.target = '_blank'; item.rel = 'noreferrer'; }
+    item.innerHTML = `
+      <div class="news-date">${escapeHtml(n.date || '')}</div>
+      <div class="news-title">${escapeHtml(n.title || '')}</div>
+      <div class="news-arrow">↗</div>`;
+    list.appendChild(item);
+  });
+}
+
+function renderContent(content) {
+  if (!content) return;
+  const hero = content.hero?.en || content.hero || {};
+  const man  = content.manifesto?.en || content.manifesto || {};
+  const soc  = content.socials || {};
+
+  // Hero — only replace if migration brought something meaningful
+  if (hero.subtitle) {
+    const eb = document.querySelector('#home .eyebrow');
+    if (eb) eb.textContent = hero.subtitle;
+  }
+  if (hero.description) {
+    const sub = document.querySelector('#home .hero-sub');
+    if (sub) sub.textContent = hero.description;
+  }
+  if (hero.title) {
+    const titleEl = document.querySelector('#home .hero-title');
+    if (titleEl) {
+      const words = hero.title.split(/\s+/);
+      if (words.length >= 2) {
+        const half = Math.ceil(words.length / 2);
+        titleEl.innerHTML =
+          `<span>${escapeHtml(words.slice(0, half).join(' '))}</span>` +
+          `<span class="outline">${escapeHtml(words.slice(half).join(' '))}</span>`;
+      } else {
+        titleEl.innerHTML = `<span>${escapeHtml(hero.title)}</span>`;
+      }
+    }
+  }
+
+  // Manifesto
+  if (man.title) {
+    const t = document.querySelector('#manifesto .sec-title');
+    if (t) t.textContent = man.title;
+  }
+  if (man.intro || man.content) {
+    const copy = document.querySelector('.manifesto-copy');
+    if (copy) {
+      // Keep the section label + title, replace the paragraphs
+      const kept = copy.querySelectorAll('.sec-label, .sec-title');
+      copy.innerHTML = '';
+      kept.forEach(el => copy.appendChild(el));
+      if (man.intro) {
+        const p = document.createElement('p');
+        p.className = 'lead reveal';
+        p.textContent = man.intro;
+        copy.appendChild(p);
+      }
+      if (man.content) {
+        String(man.content).split(/\n{2,}/).forEach(chunk => {
+          const p = document.createElement('p');
+          p.className = 'reveal';
+          p.textContent = chunk;
+          copy.appendChild(p);
+        });
+      }
+    }
+  }
+
+  // Socials
+  if (soc.email) {
+    const a = document.querySelector('#contact .big a');
+    if (a) a.href = `mailto:${soc.email}`;
+  }
+  const socialMap = { linkedin: 0, instagram: 1, facebook: 2 };
+  const socialAnchors = document.querySelectorAll('.socials a');
+  Object.entries(socialMap).forEach(([k, i]) => {
+    if (soc[k] && socialAnchors[i]) socialAnchors[i].href = soc[k];
+  });
+}
+
+async function loadMigratedContent() {
+  const fetchJson = async (p) => {
+    try {
+      const r = await fetch(p, { cache: 'no-store' });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch { return null; }
+  };
+
+  const [projects, news, content] = await Promise.all([
+    fetchJson('data/projects.json'),
+    fetchJson('data/news.json'),
+    fetchJson('data/content.json')
+  ]);
+
+  if (Array.isArray(projects) && projects.length) renderProjects(projects);
+  if (Array.isArray(news)     && news.length)     renderNews(news);
+  if (content && typeof content === 'object')     renderContent(content);
+
+  // Re-observe any newly created .reveal elements so the fade-in still fires
+  document.querySelectorAll('.reveal:not(.visible)').forEach(el => io.observe(el));
+
+  // Refresh the tiles reference used elsewhere
+  tiles = document.querySelectorAll('.tile');
+}
+
+loadMigratedContent();
 </script>
 
 </body>

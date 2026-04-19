@@ -2,25 +2,57 @@
 
 Shay Chikotay — Creative Engineer. Single-page 3D portfolio with a WebGL background, filterable project grid, YouTube modal, and an AI review feature.
 
-Stack: plain HTML + CSS + ES modules. Three.js loaded from jsDelivr via an import map. **No build step required.**
+Stack: plain HTML + CSS + ES modules. Three.js from a CDN via import map. **No build step.** Content lives in `data/*.json` files so you can edit or regenerate it without touching HTML.
+
+---
+
+## Zero-touch migration from the existing chikoshay.com
+
+If your current site is still live, you can pull everything off it automatically — projects, descriptions, YouTube IDs, news, manifesto, hero copy, uploaded images — and have it all appear on the new site. One command:
+
+```bash
+npm install
+npm run migrate
+```
+
+That runs `migrate.js`, which:
+
+1. Opens the live `https://chikoshay.com` in a headless Chrome.
+2. Captures every JSON response the site fetches (its real API).
+3. Waits for the project database and news feed to finish loading.
+4. Scrapes the rendered DOM for projects, news, hero, and manifesto — in **both English and Hebrew**.
+5. Downloads every referenced image into `assets/projects/` and rewrites URLs to local paths.
+6. Writes `data/projects.json`, `data/news.json`, `data/content.json`, plus a `data/_raw-api.json` snapshot of everything the site's own API returned (so nothing is lost even if the scraper's heuristics miss a field).
+
+Then:
+
+```bash
+git add .
+git commit -m "Migrate live content"
+git push
+```
+
+Vercel redeploys automatically. All your projects, videos, images, links, and hero/manifesto copy are live under the new design. **No manual editing required.**
+
+If your source site ever lives at a different URL (e.g. `https://old.chikoshay.com`), pass it in:
+
+```bash
+MIGRATE_SOURCE=https://old.chikoshay.com npm run migrate
+```
+
+### If the scraper gets blocked
+
+If the live host has bot protection (Cloudflare challenge, etc.), run the same script locally from a machine that's logged in, or run it once from a Vercel Preview build. Either way, the output is just a batch of JSON + image files you commit; nothing about the new site needs to reach the old one at runtime.
 
 ---
 
 ## Run locally
 
-Any static server works. The simplest option, with Node installed:
-
 ```bash
 npx serve .
 ```
 
-Then open `http://localhost:3000`.
-
-Or with Python:
-
-```bash
-python3 -m http.server 3000
-```
+Opens on `http://localhost:3000`. The site reads `data/projects.json` etc. via `fetch()`, so the local server is required (opening `index.html` directly from the file system won't load the data).
 
 ---
 
@@ -43,7 +75,7 @@ git push -u origin main
 
 1. Go to <https://vercel.com/new>.
 2. Pick the `chikoshay` repo.
-3. On the "Configure Project" screen:
+3. On "Configure Project":
    - **Framework Preset:** Other
    - **Root Directory:** `./`
    - **Build Command:** *(leave empty)*
@@ -51,50 +83,87 @@ git push -u origin main
    - **Install Command:** *(leave empty)*
 4. Click **Deploy**.
 
-Vercel auto-detects this as a static site and serves `index.html` from the root. Every `git push` to `main` redeploys automatically.
+Vercel serves `index.html` from the root. Every `git push` to `main` redeploys.
 
 ### 3. Point chikoshay.com at Vercel
 
 In your Vercel project:
 
-1. **Settings → Domains → Add** `chikoshay.com` (and `www.chikoshay.com`).
-2. Vercel will show you DNS records to configure at your registrar:
-   - **Apex (`chikoshay.com`):** `A` record → `76.76.21.21`
-   - **WWW (`www.chikoshay.com`):** `CNAME` → `cname.vercel-dns.com`
-3. Save at your registrar. SSL is issued automatically (usually within minutes).
+1. **Settings → Domains → Add** `chikoshay.com` and `www.chikoshay.com`.
+2. At your registrar, set the DNS records Vercel shows:
+   - Apex (`chikoshay.com`): `A` → `76.76.21.21`
+   - WWW: `CNAME` → `cname.vercel-dns.com`
+3. SSL is issued automatically. Lower TTL to 300s a day ahead of the switch so propagation is near-instant.
+
+**Important:** Only flip DNS *after* you've run `npm run migrate` and confirmed the Vercel preview URL shows your real content. Until then the old site stays live and untouched.
+
+---
+
+## How the content files work
+
+```
+chikoshay-site/
+├── index.html                ← the site
+├── migrate.js                ← one-shot scraper
+├── package.json
+├── vercel.json
+├── data/
+│   ├── projects.json         ← array of projects
+│   ├── news.json             ← array of news items
+│   ├── content.json          ← hero + manifesto + socials (EN + HE)
+│   └── _raw-api.json         ← untouched dump of the old site's API (reference)
+└── assets/
+    └── projects/             ← downloaded project images
+```
+
+`index.html` fetches all three JSON files on page load. If any file is empty or missing, the hardcoded placeholders in the HTML stay in place — so the site always works.
+
+### Shape of `projects.json`
+
+```json
+[
+  {
+    "id": "p-1",
+    "title": "The Unskippable Hero",
+    "category": "As Seen on TV",
+    "description": "A 30-second film built around a single uncomfortable truth.",
+    "image": "assets/projects/abc123.jpg",
+    "videoId": "dQw4w9WgXcQ",
+    "href": ""
+  }
+]
+```
+
+Rules:
+
+- If `videoId` is set, the tile shows a ▶ badge and clicking opens the YouTube player in the modal.
+- If `image` is set, the tile uses it as a cover. Otherwise, for video-only projects, the YouTube thumbnail is used automatically.
+- If neither is set, the tile falls back to a gradient.
+- `category` is free text; the filter maps it to TV / Digital / Outdoor / Print / Radio by keyword.
+
+### Shape of `news.json`
+
+```json
+[
+  { "id": "n-1", "date": "June 2024", "title": "…", "link": "https://…", "image": "", "content": "" }
+]
+```
+
+### Shape of `content.json`
+
+```json
+{
+  "hero":      { "en": { "subtitle": "…", "title": "…", "description": "…" }, "he": { … } },
+  "manifesto": { "en": { "title": "…", "intro": "…", "content": "…" },       "he": { … } },
+  "socials":   { "linkedin": "…", "instagram": "…", "facebook": "…", "email": "hello@chikoshay.com" }
+}
+```
 
 ---
 
 ## Wiring a real AI Review endpoint (optional)
 
-The "✨ AI Review" button works offline out of the box using a small local critic that adapts to each project's title, category, and description.
-
-If you want to use a real LLM (Claude, GPT-4, etc.) instead:
-
-1. Deploy a small API that accepts:
-
-   ```json
-   POST /api/review
-   { "title": "...", "category": "...", "description": "..." }
-   ```
-
-   and returns:
-
-   ```json
-   { "review": "..." }
-   ```
-
-2. In `index.html`, right before the closing `</script>` tag of the main module, add:
-
-   ```js
-   window.AI_REVIEW_ENDPOINT = "https://your-api.vercel.app/api/review";
-   ```
-
-The frontend automatically falls back to the local critic if the endpoint errors or is unreachable, so nothing breaks if the API is down.
-
-### Quickest path: Vercel Serverless Function with Anthropic
-
-Create a folder `api/` at the project root with `api/review.js`:
+The "✨ AI Review" button in the project modal works offline by default using a small local critic. To use Claude instead, create `api/review.js` at the repo root:
 
 ```js
 export default async function handler(req, res) {
@@ -124,20 +193,7 @@ export default async function handler(req, res) {
 }
 ```
 
-Then in Vercel: **Settings → Environment Variables → Add** `ANTHROPIC_API_KEY`, and set `window.AI_REVIEW_ENDPOINT = "/api/review"` in `index.html`.
-
----
-
-## Editing content
-
-All copy, project tiles, and links live directly in `index.html`:
-
-- **Hero & manifesto** — search for `id="home"` and `id="manifesto"`.
-- **Projects** — search for `class="tile` in the Work section. Each tile has:
-  - `data-title`, `data-label`, `data-desc`
-  - `data-video` (YouTube video ID, e.g. `dQw4w9WgXcQ`) — omit for image/gradient tiles
-- **News** — search for `class="news-item"`.
-- **Socials / email** — search for `hello@chikoshay.com` and the social links below it.
+Then in Vercel: **Settings → Environment Variables → Add** `ANTHROPIC_API_KEY`, and at the bottom of `index.html` add `window.AI_REVIEW_ENDPOINT = "/api/review";`. The frontend falls back to the local critic if the endpoint errors, so nothing breaks if it's down.
 
 ---
 

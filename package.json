@@ -3,9 +3,18 @@
   "version": "1.0.0",
   "description": "Shay Chikotay — Creative Engineer. 3D portfolio site.",
   "private": true,
+  "type": "module",
   "scripts": {
     "start": "npx --yes serve .",
-    "dev": "npx --yes serve ."
+    "dev": "npx --yes serve .",
+    "migrate": "node migrate.js",
+    "migrate:from": "node migrate.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "puppeteer": "^22.8.0"
   },
   "author": "Shay Chikotay",
   "license": "UNLICENSED"
