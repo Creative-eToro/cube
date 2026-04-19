@@ -46,6 +46,42 @@ If the live host has bot protection (Cloudflare challenge, etc.), run the same s
 
 ---
 
+## Run the migration from the cloud (no terminal required)
+
+There's a GitHub Action bundled at `.github/workflows/migrate.yml`. Once the repo is on GitHub, you can trigger migration with a button click — no local Node, no local install. Vercel auto-redeploys the moment the action finishes, because it commits the scraped data back to `main`.
+
+### One-time setup
+
+1. **Push the repo to GitHub** (see the "Deploy to Vercel" section below for the `git init` / `git push` commands).
+2. On GitHub, open your repo → **Settings → Actions → General**.
+3. Under **Workflow permissions**, pick **"Read and write permissions"** and save. (This lets the action commit the scraped JSON + images back to the repo. The workflow also declares `permissions: contents: write` as a belt-and-braces measure.)
+
+### Triggering a migration
+
+1. Open your repo on GitHub → **Actions** tab.
+2. In the left sidebar, click **"Migrate content from live site"**.
+3. Click **"Run workflow"** (top-right).
+4. Leave the source URL as `https://chikoshay.com` (or override it if you want to scrape a different source), then click the green **Run workflow** button.
+5. Watch the run. It takes ~2–4 minutes: installing Chromium, scraping, downloading images, committing.
+6. When it finishes green, you'll see a new commit on `main` titled `chore(migrate): sync content from …`. Vercel picks this up automatically and redeploys. Your live site now has the migrated content.
+
+### Optional: nightly auto-sync
+
+Uncomment the `schedule:` block at the top of `.github/workflows/migrate.yml` to have it run itself every night at 03:00 UTC:
+
+```yaml
+schedule:
+  - cron: '0 3 * * *'
+```
+
+On days nothing changed in the source, the action exits without committing, so you won't get noisy "no-op" deploys.
+
+### Why not run the migration directly inside Vercel's build?
+
+You *can* — set Vercel's Build Command to `npm run migrate`. The downsides: Puppeteer + Chromium is ~170 MB added to every build, builds go from seconds to minutes, every deploy re-scrapes the old site even when nothing changed, and any flakiness on the old host turns into a failed production deploy. The GitHub Action above keeps scraping and deploying decoupled: migration is a git commit event, deploys are the normal Vercel reaction to git commits.
+
+---
+
 ## Run locally
 
 ```bash
