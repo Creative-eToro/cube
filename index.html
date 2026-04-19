@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Shay Chikotay · Creative Engineer</title>
+<style>
+  :root {
+    --bg: #07080c;
+    --ink: #f3f0e6;
+    --dim: rgba(243, 240, 230, 0.58);
+    --accent: #ff5a1f;
+    --accent2: #4da3ff;
+    --line: rgba(243, 240, 230, 0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 10%, rgba(255, 90, 31, 0.08), transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(77, 163, 255, 0.08), transparent 55%);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Fixed 3D canvas layer */
+  #bg-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    display: block;
+  }
+
+  /* Scroll container */
+  main {
+    position: relative;
+    z-index: 3;
+  }
+
+  /* Nav */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 40px;
+    mix-blend-mode: difference;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  nav .brand {
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    font-size: 14px;
+  }
+
+  nav ul {
+    display: flex;
+    gap: 26px;
+    list-style: none;
+  }
+
+  nav a {
+    color: var(--ink);
+    text-decoration: none;
+    opacity: 0.75;
+    transition: opacity .2s ease;
+  }
+  nav a:hover { opacity: 1; }
+
+  /* Sections */
+  section {
+    min-height: 100vh;
+    padding: 140px 40px 100px;
+    position: relative;
+  }
+
+  .wrap {
+    max-width: 1240px;
+    margin: 0 auto;
+  }
+
+  /* Hero */
+  #home {
+    min-height: 110vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 36px; height: 1px;
+    background: var(--ink);
+    opacity: 0.7;
+  }
+
+  h1.hero-title {
+    font-size: clamp(64px, 13vw, 220px);
+    line-height: 0.88;
+    letter-spacing: -0.04em;
+    font-weight: 800;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    margin-bottom: 40px;
+  }
+
+  h1.hero-title span {
+    display: block;
+  }
+  h1.hero-title .outline {
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--ink);
+  }
+
+  .hero-sub {
+    max-width: 560px;
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--dim);
+  }
+
+  .hero-meta {
+    margin-top: 70px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 30px;
+    flex-wrap: wrap;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  .scroll-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .scroll-hint .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 18px var(--accent);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.35); opacity: 0.6; }
+  }
+
+  /* Section headers */
+  .sec-label {
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 20px;
+  }
+  .sec-title {
+    font-size: clamp(44px, 7vw, 96px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 0.95;
+    margin-bottom: 60px;
+  }
+
+  /* Manifesto */
+  #manifesto .wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+
+  .manifesto-copy p {
+    font-size: 20px;
+    line-height: 1.55;
+    margin-bottom: 22px;
+    color: rgba(243, 240, 230, 0.85);
+  }
+  .manifesto-copy p.lead {
+    font-size: 24px;
+    color: var(--ink);
+    font-style: italic;
+  }
+
+  .box-stage {
+    aspect-ratio: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* CSS 3D box that hovers */
+  .cube {
+    width: 280px; height: 280px;
+    position: relative;
+    transform-style: preserve-3d;
+    animation: spin 22s linear infinite;
+  }
+  @keyframes spin {
+    from { transform: rotateX(-18deg) rotateY(0deg); }
+    to   { transform: rotateX(-18deg) rotateY(360deg); }
+  }
+  .cube .face {
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(243, 240, 230, 0.35);
+    background: rgba(243, 240, 230, 0.03);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .cube .face.f  { transform: translateZ(140px); }
+  .cube .face.b  { transform: rotateY(180deg) translateZ(140px); }
+  .cube .face.l  { transform: rotateY(-90deg) translateZ(140px); }
+  .cube .face.r  { transform: rotateY(90deg) translateZ(140px); }
+  .cube .face.t  { transform: rotateX(90deg) translateZ(140px); }
+  .cube .face.bt { transform: rotateX(-90deg) translateZ(140px); }
+
+  /* Work */
+  .work-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 36px;
+  }
+  .work-filters button {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink);
+    padding: 10px 18px;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: all .2s ease;
+    font-family: inherit;
+  }
+  .work-filters button:hover { border-color: var(--ink); }
+  .work-filters button.active {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+
+  .work-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+    perspective: 1600px;
+  }
+
+  .tile {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    transform-style: preserve-3d;
+    transition: transform .5s cubic-bezier(.2,.8,.2,1);
+    border: 1px solid var(--line);
+  }
+  .tile .bg {
+    position: absolute;
+    inset: 0;
+    transform: translateZ(0);
+  }
+  .tile .label {
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: 22px 22px 22px;
+    background: linear-gradient(to top, rgba(7,8,12,0.85), transparent);
+    transform: translateZ(40px);
+  }
+  .tile .cat {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 8px;
+  }
+  .tile h3 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .tile.t1 .bg { background: radial-gradient(circle at 30% 30%, #ff5a1f, #7a1a00 60%, #1a0400); }
+  .tile.t2 .bg { background: radial-gradient(circle at 70% 30%, #4da3ff, #0b2a5e 60%, #040a1a); }
+  .tile.t3 .bg { background: radial-gradient(circle at 50% 70%, #ffd24d, #6e4e00 60%, #1a1200); }
+  .tile.t4 .bg { background: radial-gradient(circle at 30% 70%, #b785ff, #3a1a6e 60%, #0f051a); }
+  .tile.t5 .bg { background: radial-gradient(circle at 70% 70%, #6df2b7, #0f5a3c 60%, #04180f); }
+  .tile.t6 .bg { background: radial-gradient(circle at 50% 50%, #ff8bcd, #7a1b52 60%, #1a040f); }
+
+  /* News */
+  .news-list {
+    display: grid;
+    gap: 0;
+  }
+  .news-item {
+    display: grid;
+    grid-template-columns: 140px 1fr auto;
+    gap: 40px;
+    align-items: center;
+    padding: 28px 0;
+    border-top: 1px solid var(--line);
+    cursor: pointer;
+    transition: padding .3s ease;
+  }
+  .news-item:last-child { border-bottom: 1px solid var(--line); }
+  .news-item:hover { padding-left: 20px; }
+  .news-date {
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .news-title {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .news-arrow {
+    font-size: 18px;
+    opacity: 0.6;
+  }
+
+  /* Contact */
+  #contact {
+    text-align: center;
+    padding-top: 160px;
+    padding-bottom: 140px;
+  }
+  #contact .big {
+    font-size: clamp(56px, 11vw, 180px);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+    margin-bottom: 40px;
+  }
+  #contact .big a {
+    color: var(--ink);
+    text-decoration: none;
+    position: relative;
+  }
+  #contact .big a::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 6px;
+    height: 4px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .4s cubic-bezier(.2,.8,.2,1);
+  }
+  #contact .big a:hover::after { transform: scaleX(1); }
+
+  .socials {
+    display: inline-flex;
+    gap: 22px;
+    margin-top: 30px;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+  }
+  .socials a {
+    color: var(--dim);
+    text-decoration: none;
+    transition: color .2s;
+  }
+  .socials a:hover { color: var(--ink); }
+
+  footer {
+    padding: 30px 40px;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--dim);
+    text-align: center;
+    border-top: 1px solid var(--line);
+    position: relative;
+    z-index: 3;
+    background: var(--bg);
+  }
+
+  /* Reveal */
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 1s ease, transform 1s cubic-bezier(.2,.8,.2,1);
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* ============ PROJECT MODAL ============ */
+  .modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5, 6, 10, 0.82);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    padding: 40px;
+    opacity: 0;
+    transition: opacity .35s ease;
+  }
+  .modal.open {
+    display: flex;
+    opacity: 1;
+  }
+
+  .modal-card {
+    position: relative;
+    width: 100%;
+    max-width: 1100px;
+    max-height: 90vh;
+    background: linear-gradient(180deg, rgba(20, 22, 30, 0.96), rgba(10, 11, 16, 0.96));
+    border: 1px solid rgba(243, 240, 230, 0.12);
+    border-radius: 18px;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    transform: translateY(30px) scale(0.98);
+    transition: transform .45s cubic-bezier(.2,.8,.2,1);
+  }
+  .modal.open .modal-card { transform: none; }
+
+  .modal-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    z-index: 2;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: rgba(7,8,12,0.7);
+    color: var(--ink);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .2s ease;
+  }
+  .modal-close:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
+
+  .modal-media {
+    position: relative;
+    background: #000;
+    min-height: 420px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-media iframe {
+    width: 100%;
+    height: 100%;
+    min-height: 420px;
+    border: 0;
+    display: block;
+  }
+  .modal-media .poster {
+    width: 100%;
+    height: 100%;
+    min-height: 420px;
+  }
+
+  .modal-body {
+    padding: 44px 40px 40px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-cat {
+    font-size: 10px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 14px;
+  }
+  .modal-title {
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    margin-bottom: 22px;
+  }
+  .modal-desc {
+    font-size: 15px;
+    line-height: 1.65;
+    color: rgba(243, 240, 230, 0.82);
+    margin-bottom: 26px;
+  }
+
+  /* AI Review block */
+  .ai-review {
+    margin-top: auto;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+  .ai-btn {
+    appearance: none;
+    background: linear-gradient(135deg, #ff5a1f, #b785ff);
+    color: #fff;
+    border: 0;
+    padding: 13px 20px;
+    border-radius: 999px;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: inherit;
+    transition: transform .2s ease, box-shadow .2s ease;
+    box-shadow: 0 8px 28px rgba(255, 90, 31, 0.25);
+  }
+  .ai-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 38px rgba(255, 90, 31, 0.35);
+  }
+  .ai-btn:disabled {
+    opacity: 0.6;
+    cursor: wait;
+    transform: none;
+  }
+  .ai-btn .spark {
+    display: inline-block;
+    animation: sparkle 2s ease-in-out infinite;
+  }
+  @keyframes sparkle {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.2); }
+  }
+
+  .ai-output {
+    margin-top: 20px;
+    padding: 20px 22px;
+    background: rgba(255, 90, 31, 0.06);
+    border: 1px solid rgba(255, 90, 31, 0.2);
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.65;
+    color: rgba(243, 240, 230, 0.9);
+    min-height: 0;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height .4s ease, opacity .4s ease, padding .4s ease, margin-top .4s ease;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+  }
+  .ai-output.show {
+    max-height: 400px;
+    opacity: 1;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    margin-top: 20px;
+  }
+  .ai-output .ai-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #ffb28a;
+    margin-bottom: 10px;
+  }
+  .ai-output .ai-label .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #ff5a1f;
+    box-shadow: 0 0 12px #ff5a1f;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  .ai-output .caret {
+    display: inline-block;
+    width: 8px;
+    height: 1em;
+    background: #ffb28a;
+    vertical-align: text-bottom;
+    animation: blink 0.9s steps(2) infinite;
+    margin-left: 2px;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Tile play badge when video exists */
+  .tile .play-badge {
+    position: absolute;
+    top: 16px; right: 16px;
+    z-index: 2;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(7,8,12,0.7);
+    border: 1px solid rgba(243, 240, 230, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--ink);
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .modal { padding: 16px; }
+    .modal-card {
+      grid-template-columns: 1fr;
+      max-height: 92vh;
+    }
+    .modal-media { min-height: 240px; }
+    .modal-media iframe { min-height: 240px; }
+    .modal-body { padding: 28px 24px; }
+    .modal-title { font-size: 26px; }
+    nav { padding: 18px 22px; }
+    nav ul { display: none; }
+    section { padding: 120px 22px 80px; }
+    #manifesto .wrap { grid-template-columns: 1fr; gap: 40px; }
+    .work-grid { grid-template-columns: 1fr 1fr; }
+    .news-item { grid-template-columns: 1fr; gap: 6px; padding: 18px 0; }
+    .news-title { font-size: 18px; }
+  }
+  @media (max-width: 560px) {
+    .work-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<nav>
+  <div class="brand">CHIKOSHAY.</div>
+  <ul>
+    <li><a href="#home">Home</a></li>
+    <li><a href="#manifesto">Manifesto</a></li>
+    <li><a href="#work">Work</a></li>
+    <li><a href="#news">News</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<main>
+  <!-- HERO -->
+  <section id="home">
+    <div class="wrap">
+      <div class="eyebrow reveal">Creative Engineer · Tel Aviv / Worldwide</div>
+      <h1 class="hero-title reveal">
+        <span>SHAY</span>
+        <span class="outline">CHIKOTAY</span>
+      </h1>
+      <p class="hero-sub reveal">
+        Award-winning creative with 20 years of crafting narratives for leading brands.
+        I build advertising moves, campaigns, films, and technological experiments that
+        land in the real world.
+      </p>
+      <div class="hero-meta reveal">
+        <div>Est. 2004 · Still Making</div>
+        <div class="scroll-hint"><span class="dot"></span> Scroll to explore</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MANIFESTO -->
+  <section id="manifesto">
+    <div class="wrap">
+      <div class="manifesto-copy">
+        <div class="sec-label reveal">/ Manifesto</div>
+        <h2 class="sec-title reveal">What is a box?</h2>
+        <p class="lead reveal">Hi, and nice to meet you.</p>
+        <p class="reveal">
+          I'm not really here. Well — metaphorically a big part of me is.
+          I create advertising moves, campaigns, films, and technological
+          innovations that do good for everyone.
+        </p>
+        <p class="reveal">
+          Twenty years in, I still think the best ideas are the ones that feel inevitable
+          the moment you see them. So I spend my days trying to make inevitable things.
+        </p>
+      </div>
+      <div class="box-stage reveal">
+        <div class="cube" id="cssCube">
+          <div class="face f">Creative</div>
+          <div class="face b">Engineer</div>
+          <div class="face l">Film</div>
+          <div class="face r">Code</div>
+          <div class="face t">Idea</div>
+          <div class="face bt">Craft</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WORK -->
+  <section id="work">
+    <div class="wrap">
+      <div class="sec-label reveal">/ Selected Work</div>
+      <h2 class="sec-title reveal">Things I've made.</h2>
+      <div class="work-filters reveal">
+        <button class="active" data-filter="all">All</button>
+        <button data-filter="tv">As Seen on TV</button>
+        <button data-filter="digital">Best Use of Everything</button>
+        <button data-filter="outdoor">Outdoor</button>
+        <button data-filter="print">Print</button>
+        <button data-filter="radio">Radio</button>
+      </div>
+      <div class="work-grid" id="workGrid">
+        <div class="tile t1 reveal" data-cat="tv"
+             data-title="The Unskippable Hero"
+             data-label="As Seen on TV"
+             data-video="dQw4w9WgXcQ"
+             data-desc="A 30-second film built around a single uncomfortable truth. Broadcast nationally; the frame where no one blinks became a meme before the spot finished airing.">
+          <div class="bg"></div>
+          <div class="play-badge">▶</div>
+          <div class="label"><div class="cat">As Seen on TV</div><h3>The Unskippable Hero</h3></div>
+        </div>
+        <div class="tile t2 reveal" data-cat="digital"
+             data-title="A Machine That Listens"
+             data-label="Best Use of Everything"
+             data-video="aqz-KE-bpKQ"
+             data-desc="An installation that translated crowd noise into live generative type. Built with a small team, a lot of patience, and an embarrassing number of microphones.">
+          <div class="bg"></div>
+          <div class="play-badge">▶</div>
+          <div class="label"><div class="cat">Best Use of Everything</div><h3>A Machine That Listens</h3></div>
+        </div>
+        <div class="tile t3 reveal" data-cat="outdoor"
+             data-title="Billboard That Blinks"
+             data-label="Outdoor"
+             data-desc="A 12-meter billboard with a single eye that tracked passersby. Sometimes it blinked. Sometimes it winked. No one complained; many waved back.">
+          <div class="bg"></div>
+          <div class="label"><div class="cat">Outdoor</div><h3>Billboard That Blinks</h3></div>
+        </div>
+        <div class="tile t4 reveal" data-cat="print"
+             data-title="Folded Headlines"
+             data-label="Print"
+             data-desc="A newspaper takeover where every fold revealed a different joke. Read it flat, read it folded — the medium was the punchline.">
+          <div class="bg"></div>
+          <div class="label"><div class="cat">Print</div><h3>Folded Headlines</h3></div>
+        </div>
+        <div class="tile t5 reveal" data-cat="radio"
+             data-title="Silence, 30s."
+             data-label="Radio"
+             data-desc="A national radio spot that was thirty seconds of near-silence. People called the station to ask if something was broken. That was the campaign.">
+          <div class="bg"></div>
+          <div class="label"><div class="cat">Radio</div><h3>Silence, 30s.</h3></div>
+        </div>
+        <div class="tile t6 reveal" data-cat="digital"
+             data-title="A Site That Breathes"
+             data-label="Best Use of Everything"
+             data-video="LXb3EKWsInQ"
+             data-desc="A brand site whose entire layout inhaled and exhaled with the hour. Morning was airy, evening compressed. Nothing explained it; everyone noticed it.">
+          <div class="bg"></div>
+          <div class="play-badge">▶</div>
+          <div class="label"><div class="cat">Best Use of Everything</div><h3>A Site That Breathes</h3></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEWS -->
+  <section id="news">
+    <div class="wrap">
+      <div class="sec-label reveal">/ News</div>
+      <h2 class="sec-title reveal">Recent noise.</h2>
+      <div class="news-list">
+        <a class="news-item reveal">
+          <div class="news-date">June 2024</div>
+          <div class="news-title">Cannes Lions shortlist, twice in one week.</div>
+          <div class="news-arrow">↗</div>
+        </a>
+        <a class="news-item reveal">
+          <div class="news-date">March 2024</div>
+          <div class="news-title">Talk at OFFF: "Make the inevitable thing."</div>
+          <div class="news-arrow">↗</div>
+        </a>
+        <a class="news-item reveal">
+          <div class="news-date">January 2024</div>
+          <div class="news-title">New film for a global brand. Premiere soon.</div>
+          <div class="news-arrow">↗</div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact">
+    <div class="wrap">
+      <div class="sec-label reveal">/ Get in touch</div>
+      <div class="big reveal">
+        <a href="mailto:hello@chikoshay.com">Let's talk →</a>
+      </div>
+      <div class="socials reveal">
+        <a href="https://linkedin.com/in/chikoshay" target="_blank" rel="noreferrer">LinkedIn</a>
+        <a href="https://instagram.com/chikoshay" target="_blank" rel="noreferrer">Instagram</a>
+        <a href="https://facebook.com/chikoshay" target="_blank" rel="noreferrer">Facebook</a>
+        <a href="#">CV</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- PROJECT MODAL -->
+<div class="modal" id="projectModal" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal-card">
+    <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
+    <div class="modal-media" id="modalMedia"></div>
+    <div class="modal-body">
+      <div class="modal-cat" id="modalCat"></div>
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-desc" id="modalDesc"></div>
+      <div class="ai-review">
+        <button class="ai-btn" id="aiBtn">
+          <span class="spark">✨</span>
+          <span id="aiBtnLabel">AI Review</span>
+        </button>
+        <div class="ai-output" id="aiOutput">
+          <div class="ai-label"><span class="live-dot"></span> Claude is analyzing…</div>
+          <div class="ai-text" id="aiText"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  © 2024 Shay Chikotay · No animals were harmed in the making of this site.
+</footer>
+
+<!-- THREE.JS -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ----- Setup -----
+const canvas = document.getElementById('bg-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x000000, 0);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x07080c, 0.02);
+
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 300);
+camera.position.set(0, 0, 14);
+
+// ----- Lights -----
+scene.add(new THREE.AmbientLight(0x99aacc, 0.35));
+const key = new THREE.DirectionalLight(0xfff0dd, 1.2);
+key.position.set(6, 8, 10);
+scene.add(key);
+const rim = new THREE.DirectionalLight(0xff5a1f, 0.8);
+rim.position.set(-8, -4, 5);
+scene.add(rim);
+const fill = new THREE.DirectionalLight(0x4da3ff, 0.6);
+fill.position.set(4, -6, -6);
+scene.add(fill);
+
+// ----- Starfield -----
+function makeStars() {
+  const count = 1800;
+  const g = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const r = 40 + Math.random() * 120;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2*Math.random()-1);
+    pos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+    pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+    pos[i*3+2] = r * Math.cos(phi);
+  }
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const m = new THREE.PointsMaterial({ color: 0xffffff, size: 0.25, transparent: true, opacity: 0.7, sizeAttenuation: true });
+  return new THREE.Points(g, m);
+}
+scene.add(makeStars());
+
+// ----- Box field -----
+const boxGroup = new THREE.Group();
+scene.add(boxGroup);
+
+const boxes = [];
+const palette = [0xff5a1f, 0x4da3ff, 0xffd24d, 0xb785ff, 0x6df2b7, 0xff8bcd, 0xf3f0e6];
+
+const COUNT = 90;
+for (let i = 0; i < COUNT; i++) {
+  const size = 0.3 + Math.random() * 1.4;
+  const geo = new THREE.BoxGeometry(size, size, size);
+  const color = palette[Math.floor(Math.random() * palette.length)];
+  const mat = new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.35,
+    metalness: 0.4,
+    emissive: color,
+    emissiveIntensity: 0.15
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  // Distribute over a long vertical channel matching scroll
+  const layer = i / COUNT;            // 0..1 across scroll depth
+  const spreadX = 22;
+  const spreadY = 80;
+  mesh.position.set(
+    (Math.random() - 0.5) * spreadX,
+    (layer - 0.5) * spreadY + (Math.random() - 0.5) * 4,
+    -6 + (Math.random() - 0.5) * 14
+  );
+  mesh.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+  mesh.userData = {
+    rotSpeed: new THREE.Vector3(
+      (Math.random() - 0.5) * 0.3,
+      (Math.random() - 0.5) * 0.3,
+      (Math.random() - 0.5) * 0.3
+    ),
+    floatSpeed: 0.3 + Math.random() * 0.7,
+    floatAmp: 0.3 + Math.random() * 0.9,
+    baseY: mesh.position.y
+  };
+  boxGroup.add(mesh);
+  boxes.push(mesh);
+}
+
+// Big hero box — stands in the middle of the hero
+const heroGeo = new THREE.BoxGeometry(3.6, 3.6, 3.6);
+const heroMat = new THREE.MeshStandardMaterial({
+  color: 0xf3f0e6,
+  roughness: 0.25,
+  metalness: 0.6,
+  emissive: 0x221a0e,
+  emissiveIntensity: 0.4
+});
+const heroBox = new THREE.Mesh(heroGeo, heroMat);
+heroBox.position.set(6.5, 0, -2);
+scene.add(heroBox);
+
+// Wireframe shell around hero box
+const heroWire = new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(4.4, 4.4, 4.4)),
+  new THREE.LineBasicMaterial({ color: 0xff5a1f, transparent: true, opacity: 0.6 })
+);
+heroWire.position.copy(heroBox.position);
+scene.add(heroWire);
+
+// ----- Mouse parallax -----
+const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
+window.addEventListener('pointermove', (e) => {
+  pointer.tx = (e.clientX / window.innerWidth - 0.5) * 2;
+  pointer.ty = (e.clientY / window.innerHeight - 0.5) * 2;
+});
+
+// ----- Scroll progress -----
+let scrollT = 0;
+let scrollTarget = 0;
+function updateScroll() {
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  scrollTarget = max > 0 ? window.scrollY / max : 0;
+}
+window.addEventListener('scroll', updateScroll, { passive: true });
+updateScroll();
+
+// ----- Resize -----
+window.addEventListener('resize', () => {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+});
+
+// ----- Animate -----
+const clock = new THREE.Clock();
+function tick() {
+  const t = clock.getElapsedTime();
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  // ease scroll
+  scrollT += (scrollTarget - scrollT) * 0.08;
+
+  // ease pointer
+  pointer.x += (pointer.tx - pointer.x) * 0.06;
+  pointer.y += (pointer.ty - pointer.y) * 0.06;
+
+  // Camera travels down through the box field as user scrolls
+  camera.position.y = -scrollT * 40;
+  camera.position.x = pointer.x * 0.8;
+  camera.position.z = 14 - scrollT * 2.0;
+  camera.rotation.x = pointer.y * 0.06;
+  camera.rotation.y = pointer.x * 0.06;
+
+  // Box field animation
+  for (const b of boxes) {
+    b.rotation.x += b.userData.rotSpeed.x * dt;
+    b.rotation.y += b.userData.rotSpeed.y * dt;
+    b.rotation.z += b.userData.rotSpeed.z * dt;
+    b.position.y = b.userData.baseY + Math.sin(t * b.userData.floatSpeed) * b.userData.floatAmp * 0.1;
+  }
+
+  // Hero box gentle rotation
+  heroBox.rotation.x = t * 0.12;
+  heroBox.rotation.y = t * 0.18;
+  heroWire.rotation.x = -t * 0.08;
+  heroWire.rotation.y = -t * 0.1;
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+tick();
+
+// ----- Reveal animations -----
+const io = new IntersectionObserver((entries) => {
+  for (const e of entries) {
+    if (e.isIntersecting) e.target.classList.add('visible');
+  }
+}, { threshold: 0.15 });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+// ----- Work filter -----
+const filterButtons = document.querySelectorAll('.work-filters button');
+const tiles = document.querySelectorAll('.tile');
+filterButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    filterButtons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const f = btn.dataset.filter;
+    tiles.forEach(t => {
+      const show = f === 'all' || t.dataset.cat === f;
+      t.style.display = show ? '' : 'none';
+    });
+  });
+});
+
+// ----- Tile 3D tilt -----
+tiles.forEach(tile => {
+  tile.addEventListener('pointermove', (e) => {
+    const rect = tile.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    tile.style.transform = `rotateY(${x * 14}deg) rotateX(${-y * 14}deg) translateZ(8px)`;
+  });
+  tile.addEventListener('pointerleave', () => {
+    tile.style.transform = '';
+  });
+});
+
+// ===== PROJECT MODAL + YOUTUBE + AI REVIEW =====
+const modal       = document.getElementById('projectModal');
+const modalClose  = document.getElementById('modalClose');
+const modalMedia  = document.getElementById('modalMedia');
+const modalCat    = document.getElementById('modalCat');
+const modalTitle  = document.getElementById('modalTitle');
+const modalDesc   = document.getElementById('modalDesc');
+const aiBtn       = document.getElementById('aiBtn');
+const aiBtnLabel  = document.getElementById('aiBtnLabel');
+const aiOutput    = document.getElementById('aiOutput');
+const aiText      = document.getElementById('aiText');
+
+let currentProject = null;
+let typeTimer = null;
+
+function openModal(tile) {
+  currentProject = {
+    title: tile.dataset.title,
+    label: tile.dataset.label,
+    desc:  tile.dataset.desc,
+    video: tile.dataset.video || '',
+    gradient: getComputedStyle(tile.querySelector('.bg')).background
+  };
+
+  modalCat.textContent   = currentProject.label;
+  modalTitle.textContent = currentProject.title;
+  modalDesc.textContent  = currentProject.desc;
+
+  // YouTube embed OR poster fallback using the tile's gradient
+  if (currentProject.video) {
+    modalMedia.innerHTML = `
+      <iframe
+        src="https://www.youtube.com/embed/${currentProject.video}?rel=0&modestbranding=1"
+        title="${currentProject.title}"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen></iframe>`;
+  } else {
+    modalMedia.innerHTML = `<div class="poster" style="background:${currentProject.gradient}"></div>`;
+  }
+
+  // reset AI state
+  resetAI();
+
+  modal.setAttribute('aria-hidden', 'false');
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  // Stop the YouTube player by clearing the iframe
+  modalMedia.innerHTML = '';
+  document.body.style.overflow = '';
+  resetAI();
+}
+
+function resetAI() {
+  if (typeTimer) { clearInterval(typeTimer); typeTimer = null; }
+  aiOutput.classList.remove('show');
+  aiText.innerHTML = '';
+  aiBtn.disabled = false;
+  aiBtnLabel.textContent = 'AI Review';
+}
+
+modalClose.addEventListener('click', closeModal);
+modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
+
+tiles.forEach(tile => {
+  tile.addEventListener('click', (e) => {
+    // avoid opening while dragging-filter interaction
+    if (e.target.closest('.work-filters')) return;
+    openModal(tile);
+  });
+});
+
+// ---- AI Review ----
+// If you have a real LLM endpoint, set window.AI_REVIEW_ENDPOINT to a URL
+// that accepts { title, category, description } and returns { review: "..." }.
+// Otherwise a local critic generates thoughtful, project-aware copy.
+async function generateAIReview(project) {
+  if (window.AI_REVIEW_ENDPOINT) {
+    try {
+      const res = await fetch(window.AI_REVIEW_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: project.title,
+          category: project.label,
+          description: project.desc
+        })
+      });
+      const data = await res.json();
+      if (data && data.review) return data.review;
+    } catch (err) {
+      console.warn('AI endpoint failed, falling back to local critic.', err);
+    }
+  }
+  return localCritic(project);
+}
+
+function localCritic(p) {
+  // Lightweight pseudo-LLM: assembles a coherent, project-specific critique
+  // from weighted phrase banks. Not random noise — it actually reads the
+  // title/category/description and adapts its tone.
+  const t = p.title.toLowerCase();
+  const d = (p.desc || '').toLowerCase();
+  const cat = p.label;
+
+  const leadBank = [
+    `"${p.title}" lands on the page like a thesis statement — confident, compact, and daring you to disagree.`,
+    `At first glance, "${p.title}" reads like a stunt. Stay with it for five seconds and it reveals itself as an argument.`,
+    `"${p.title}" belongs to that rare category of work that improves the longer you look at it.`
+  ];
+
+  const craftBank = {
+    'As Seen on TV': `Broadcast work lives or dies in the first two seconds; this one earns the next twenty-eight by refusing to explain itself.`,
+    'Best Use of Everything': `The craft here is the restraint. A smaller team might have added three more features; the authors added exactly none, and the idea is sharper for it.`,
+    'Outdoor': `Out-of-home is a medium most creatives treat as a photograph. This treats it as a performance — which is why people stopped walking.`,
+    'Print': `Print is supposed to be the easy category. This entry reminds you it's the hardest: nothing moves, so every decision is on record.`,
+    'Radio': `Radio is the discipline of suggestion. This spot understands that — and trusts the listener enough to do most of the work.`
+  };
+
+  const ideaBank = [
+    `The insight is old; the execution is specifically new. That gap is where all good ideas live.`,
+    `The cleverness isn't in the concept — it's in the decision of what to leave out.`,
+    `What makes it work is a willingness to be misread for a moment before being understood completely.`
+  ];
+
+  const closerBank = [
+    `Verdict: the kind of thing that looks obvious in a case-study reel and was anything but in the room.`,
+    `Verdict: files itself neatly under "inevitable ideas," which are the rarest kind.`,
+    `Verdict: this is what happens when a creative engineer treats the brief as a prototype, not a prompt.`
+  ];
+
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+  // light nudges from description keywords
+  let flavor = '';
+  if (/silence|quiet/.test(d + ' ' + t)) flavor = ` There's a confidence in the silence that most briefs would have edited out.`;
+  else if (/billboard|outdoor|street/.test(d + ' ' + t)) flavor = ` It uses public space the way good theatre uses a stage: as an accomplice.`;
+  else if (/site|digital|machine|generative|code/.test(d + ' ' + t)) flavor = ` The technology is invisible, which is the highest compliment you can pay a technical piece.`;
+  else if (/news|print|paper/.test(d + ' ' + t)) flavor = ` The format is doing half the work, and the work knows it.`;
+
+  return [
+    pick(leadBank),
+    (craftBank[cat] || ideaBank[0]) + flavor,
+    pick(ideaBank),
+    pick(closerBank)
+  ].join(' ');
+}
+
+function typeInto(el, text, speed = 14) {
+  return new Promise(resolve => {
+    let i = 0;
+    el.innerHTML = '<span class="caret"></span>';
+    if (typeTimer) clearInterval(typeTimer);
+    typeTimer = setInterval(() => {
+      i++;
+      el.innerHTML = text.slice(0, i) + '<span class="caret"></span>';
+      if (i >= text.length) {
+        clearInterval(typeTimer);
+        typeTimer = null;
+        el.innerHTML = text; // remove caret when done
+        resolve();
+      }
+    }, speed);
+  });
+}
+
+aiBtn.addEventListener('click', async () => {
+  if (!currentProject) return;
+  aiBtn.disabled = true;
+  aiBtnLabel.textContent = 'Thinking…';
+  aiOutput.classList.add('show');
+  aiText.innerHTML = '';
+  // small delay so the "analyzing" label is readable
+  await new Promise(r => setTimeout(r, 550));
+  const review = await generateAIReview(currentProject);
+  await typeInto(aiText, review, 12);
+  aiBtnLabel.textContent = 'Regenerate';
+  aiBtn.disabled = false;
+});
+</script>
+
+</body>
+</html>

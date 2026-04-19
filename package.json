@@ -1,0 +1,12 @@
+{
+  "name": "chikoshay",
+  "version": "1.0.0",
+  "description": "Shay Chikotay — Creative Engineer. 3D portfolio site.",
+  "private": true,
+  "scripts": {
+    "start": "npx --yes serve .",
+    "dev": "npx --yes serve ."
+  },
+  "author": "Shay Chikotay",
+  "license": "UNLICENSED"
+}
